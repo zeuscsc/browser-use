@@ -642,8 +642,8 @@ class Agent:
 			task_frame = self._create_task_frame(
 				self.task,
 				self.history.history[0].state.screenshot,
-				title_font,
-				regular_font,
+				title_font, # type: ignore
+				regular_font, # type: ignore
 				logo,
 				line_spacing,
 			)
@@ -663,8 +663,8 @@ class Agent:
 					image=image,
 					step_number=i,
 					goal_text=item.model_output.current_state.next_goal,
-					regular_font=regular_font,
-					title_font=title_font,
+					regular_font=regular_font, # type: ignore
+					title_font=title_font, # type: ignore
 					margin=margin,
 					logo=logo,
 				)
@@ -917,7 +917,7 @@ class Agent:
 		# Create rounded rectangle for goal text
 		text_padding = 20
 		text_lines = textwrap.wrap(text, width=60)
-		text_height = sum(draw.textsize(line, font=text_font)[1] for line in text_lines)
+		text_height = sum(draw.textsize(line, font=text_font)[1] for line in text_lines) # type: ignore
 		text_box_height = text_height + (2 * text_padding)
 
 		# Draw rounded rectangle background for goal
@@ -948,11 +948,11 @@ class Agent:
 		y = 50  # Starting y position for text
 		for line in text_lines:
 			draw.text((margin + small_logo_size + 20, y), line, font=text_font, fill='black')
-			y += draw.textsize(line, font=text_font)[1] + 5
+			y += draw.textsize(line, font=text_font)[1] + 5 # type: ignore
 
 		# Draw step number with rounded background
 		number_text = str(step_number)
-		number_size = draw.textsize(number_text, font=number_font)
+		number_size = draw.textsize(number_text, font=number_font) # type: ignore
 		number_padding = 20
 		number_box_width = number_size[0] + (2 * number_padding)
 		number_box_height = number_size[1] + (2 * number_padding)
