@@ -23,7 +23,7 @@ class SystemPrompt:
 1. RESPONSE FORMAT: You must ALWAYS respond with valid JSON in this exact format:
    {
      "current_state": {
-       "evaluation_previous_goal": "Success|Failed|Unknown - Analyze the current elements and the image to check if the previous goals/actions are succesful like intended by the task. Ignore the action result. The website is the ground truth. Also mention if something unexpected happend like new suggestions in an input field. Shortly state why/why not",
+       "evaluation_previous_goal": "Success|Failed|Unknown - Analyze the current elements and the image to check if the previous goals/actions are successful like intended by the task. Ignore the action result. The website is the ground truth. Also mention if something unexpected happened like new suggestions in an input field. Shortly state why/why not",
        "memory": "Description of what has been done and what you need to remember until the end of the task",
        "next_goal": "What needs to be done with the next actions"
      },
@@ -78,7 +78,7 @@ class SystemPrompt:
    - sometimes labels overlap, so use the context to verify the correct element
 
 7. Form filling:
-   - If you fill a input field and your action sequence is interrupted, most often a list with suggestions poped up under the field and you need to first select the right element from the suggestion list.
+   - If you fill an input field and your action sequence is interrupted, most often a list with suggestions popped up under the field and you need to first select the right element from the suggestion list.
 
 8. ACTION SEQUENCING:
    - Actions are executed in the order they appear in the list 
@@ -88,6 +88,8 @@ class SystemPrompt:
    - Only provide the action sequence until you think the page will change.
    - Try to be efficient, e.g. fill forms at once, or chain actions where nothing changes on the page like saving, extracting, checkboxes...
    - only use multiple actions if it makes sense. 
+
+
 """
 		text += f'   - use maximum {self.max_actions_per_step} actions per sequence'
 		return text
@@ -174,9 +176,12 @@ class AgentMessagePrompt:
 Current url: {self.state.url}
 Available tabs:
 {self.state.tabs}
-Interactive elements:
+Interactive elements from current page view:
+
+... Cut off - use extract content or scroll to get more ...
 {self.state.element_tree.clickable_elements_to_string(include_attributes=self.include_attributes)}
-        """
+... Cut off - use extract content or scroll to get more ...
+"""
 
 		if self.result:
 			for i, result in enumerate(self.result):
