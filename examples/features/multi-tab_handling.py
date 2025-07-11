@@ -4,19 +4,21 @@ Simple try of the agent.
 @dev You need to add OPENAI_API_KEY to your environment variables.
 """
 
+import asyncio
 import os
 import sys
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-import asyncio
+from dotenv import load_dotenv
 
-from langchain_openai import ChatOpenAI
+load_dotenv()
 
 from browser_use import Agent
+from browser_use.llm import ChatOpenAI
 
 # video: https://preview.screen.studio/share/clenCmS6
-llm = ChatOpenAI(model='gpt-4o')
+llm = ChatOpenAI(model='gpt-4.1')
 agent = Agent(
 	task='open 3 tabs with elon musk, trump, and steve jobs, then go back to the first and stop',
 	llm=llm,

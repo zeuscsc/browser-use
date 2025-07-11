@@ -1,20 +1,21 @@
+import asyncio
 import os
 import sys
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-import asyncio
 import threading
-import time
 
-from langchain_openai import ChatOpenAI
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from browser_use import Agent
+from browser_use.llm import ChatOpenAI
 
 
 class AgentController:
 	def __init__(self):
-		llm = ChatOpenAI(model='gpt-4o')
+		llm = ChatOpenAI(model='gpt-4.1')
 		self.agent = Agent(
 			task='open in one action https://www.google.com, https://www.wikipedia.org, https://www.youtube.com, https://www.github.com, https://amazon.com',
 			llm=llm,
@@ -55,13 +56,16 @@ def print_menu():
 	print('5. Exit')
 
 
-def main():
+async def main():
 	controller = AgentController()
 	agent_thread = None
 
 	while True:
 		print_menu()
-		choice = input('Enter your choice (1-5): ')
+		try:
+			choice = input('Enter your choice (1-5): ')
+		except KeyboardInterrupt:
+			choice = '5'
 
 		if choice == '1' and not agent_thread:
 			print('Starting agent...')
@@ -91,8 +95,8 @@ def main():
 					agent_thread.join()
 			break
 
-		time.sleep(0.1)  # Small delay to prevent CPU spinning
+		await asyncio.sleep(0.1)  # Small delay to prevent CPU spinning
 
 
 if __name__ == '__main__':
-	main()
+	asyncio.run(main())

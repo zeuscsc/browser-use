@@ -1,35 +1,35 @@
+import asyncio
 import os
 import sys
-from pathlib import Path
 
-from browser_use.agent.views import ActionResult
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-import asyncio
+from dotenv import load_dotenv
 
-from langchain_openai import ChatOpenAI
+load_dotenv()
 
-from browser_use import Agent, Controller
-from browser_use.browser.browser import Browser, BrowserConfig
-from browser_use.browser.context import BrowserContext
+from browser_use import Agent
+from browser_use.browser import BrowserProfile, BrowserSession
+from browser_use.llm import ChatOpenAI
 
-browser = Browser(
-	config=BrowserConfig(
-		# NOTE: you need to close your chrome browser - so that this can open your browser in debug mode
-		chrome_instance_path='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-	)
+browser_profile = BrowserProfile(
+	# NOTE: you need to close your chrome browser - so that this can open your browser in debug mode
+	executable_path='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+	user_data_dir='~/.config/browseruse/profiles/default',
+	headless=False,
 )
+browser_session = BrowserSession(browser_profile=browser_profile)
 
 
 async def main():
 	agent = Agent(
-		task='In docs.google.com write my Papa a quick letter',
-		llm=ChatOpenAI(model='gpt-4o'),
-		browser=browser,
+		task='Find todays DOW stock price',
+		llm=ChatOpenAI(model='gpt-4.1'),
+		browser_session=browser_session,
 	)
 
 	await agent.run()
-	await browser.close()
+	await browser_session.close()
 
 	input('Press Enter to close...')
 
