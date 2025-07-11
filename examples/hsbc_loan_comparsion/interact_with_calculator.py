@@ -30,6 +30,8 @@ from browser_use.browser.context import BrowserContext
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 
+import json
+
 
 load_dotenv()
 google_api_key = os.getenv('GEMINI_API_KEY')
@@ -42,7 +44,7 @@ if not open_router_api_key:
 agent_llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash', api_key=SecretStr(google_api_key))
 planner_llm = ChatOpenAI(
 			base_url='https://openrouter.ai/api/v1',
-            model="deepseek/deepseek-r1",
+            model="perplexity/r1-1776",
             api_key=SecretStr(open_router_api_key))
 
 PROJECT_NAME="hsbc_loan_comparsion"
@@ -57,33 +59,76 @@ loan_amount_list=[50000,100000,200000,300000,500000,800000,1000000,1500000]
 # 12 months, 24 months, 36 months, 60 months
 period_list=[12,24,36,60]
 
-initial_actions = [
-	{'open_tab': {'url': BANK_URL_MAPPING[BANK]}},
-]
-async def main(task:str):
+class Snapshot(BaseModel):
+	loan_amount: int
+	period: int
+	flat_rate: float
+	annualised_percentage_rate: int
+
+
+class Snapshots(BaseModel):
+	snapshots: List[Snapshot]
+controller = Controller(output_model=Snapshots)
+
+def load_initial_actions_from_history(tasks_class_names: list[str]) -> list[dict]:
+    initial_actions = [{'open_tab': {'url': BANK_URL_MAPPING[BANK]}}]
+    for task in tasks_class_names:
+        path = os.path.join("agent_histories", PROJECT_NAME, task+".json")
+        histories = json.load(open(path, "r"))["history"]
+        for history in histories:
+            if "model_output" in history:
+                model_output = history["model_output"]
+                if "action" in model_output:
+                    actions= model_output["action"]
+                    for action in actions:
+                        if "done" not in action:
+                            initial_actions.append(action)
+    return initial_actions
+
+
+async def main(task:str, pervoius_tasks_history_class_name:list[str]=[])->pd.DataFrame | None:
+    initial_actions = load_initial_actions_from_history(pervoius_tasks_history_class_name)
     agent_state = AgentState()
     browser = Browser(
 	config=BrowserConfig(new_context_config=BrowserContextConfig()))
-    agent = Agent(task=task, llm=agent_llm, injected_agent_state=agent_state,
+    agent = Agent(task=task, llm=agent_llm, controller=controller,injected_agent_state=agent_state,
                     browser=browser,
 	                initial_actions=initial_actions,
                     planner_llm=planner_llm,
                     use_vision_for_planner=False, planner_interval=1,
         )
-    await agent.run(max_steps=20)
-    agent.save_history("agent_histories/finds_calculator.json")
+    history = await agent.run(max_steps=20)
+    agent.save_history(os.path.join("agent_histories", PROJECT_NAME, os.path.basename(__file__)+".json"))
+    result = history.final_result()
+    if result:
+        parsed: Snapshots = Snapshots.model_validate_json(result)
+        df = pd.DataFrame([snapshot.model_dump() for snapshot in parsed.snapshots])
+        return df
 
 
 if __name__ == '__main__':
-    task = f"""
-Scroll down to find the calculator, don't scroll too much or you will miss it.
+    task=f"""
+Select Loan Amount and fill in 0 in the input box.
+Select Loan Period and delete everything in the input box.
+Fill in the following information:
+Loan Amount: $1,500,000
+Period: 60 months (You may need to scroll down to find the selection).
+Make sure the values are the same.
+Then extract the flat rate and annualised percentage rate
+
+Don't click the Apply Now button!!!
+"""
+    task=f"""
+Select Loan Period and delete everything in the input box.
+Fill in the following information:
+Loan Amount: $1,500,000
+
+Don't click the Apply Now button!!!
 """
 #     task = f"""
-# Goto {BANK_URL_MAPPING[BANK]}.
-# Scroll down to find the calculator. 
 # Fill in the following information:
 # Input all the following combinations of loan amount and period then extract the flat rate and annualised percentage rate:
 # Loan Amount: $50,000, $100,000, $200,000, $300,000, $500,000, $800,000, $1,000,000, $1,500,000
 # Period: 12 months, 24 months, 36 months, 60 months
 # """
-    asyncio.run(main(task))
+    asyncio.run(main(task, ["finds_calculator.py"]))

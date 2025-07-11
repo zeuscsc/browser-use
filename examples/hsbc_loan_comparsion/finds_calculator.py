@@ -57,40 +57,21 @@ loan_amount_list=[50000,100000,200000,300000,500000,800000,1000000,1500000]
 # 12 months, 24 months, 36 months, 60 months
 period_list=[12,24,36,60]
 
-class Snapshot(BaseModel):
-	loan_amount: int
-	period: int
-	flat_rate: float
-	annualised_percentage_rate: int
-
-
-class Snapshots(BaseModel):
-	snapshots: List[Snapshot]
-controller = Controller(output_model=Snapshots)
-
 initial_actions = [
 	{'open_tab': {'url': BANK_URL_MAPPING[BANK]}},
 ]
-async def main(task:str)->pd.DataFrame | None:
+async def main(task:str):
     agent_state = AgentState()
     browser = Browser(
 	config=BrowserConfig(new_context_config=BrowserContextConfig()))
-    agent = Agent(task=task, llm=agent_llm, controller=controller,injected_agent_state=agent_state,
+    agent = Agent(task=task, llm=agent_llm, injected_agent_state=agent_state,
                     browser=browser,
 	                initial_actions=initial_actions,
                     planner_llm=planner_llm,
                     use_vision_for_planner=False, planner_interval=1,
         )
-    history = await agent.run(max_steps=20)
-    agent_state.history.history = []
-    with open('agent_state.json', 'w',encoding="utf8") as f:
-        serialized = agent_state.model_dump_json(exclude={'history'})
-        f.write(serialized)
-    result = history.final_result()
-    if result:
-        parsed: Snapshots = Snapshots.model_validate_json(result)
-        df = pd.DataFrame([snapshot.model_dump() for snapshot in parsed.snapshots])
-        return df
+    await agent.run(max_steps=20)
+    agent.save_history(os.path.join("agent_histories", PROJECT_NAME, os.path.basename(__file__)+".json"))
 
 
 if __name__ == '__main__':
